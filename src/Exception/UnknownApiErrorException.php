@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fivem\ClashOfClans\Exception\ApiError;
-
-use Fivem\ClashOfClans\Exception\ApiClientExceptionInterface;
+namespace Fivem\ClashOfClans\Exception;
 
 class UnknownApiErrorException extends \Exception implements ApiClientExceptionInterface
 {
@@ -14,7 +12,7 @@ class UnknownApiErrorException extends \Exception implements ApiClientExceptionI
     public function __construct(int $responseStatusCode, string $responseContent, \Throwable $previous)
     {
         parent::__construct(
-            sprintf('An unknown error occurred (status code = %s) : %s', $statusCode, $previous->getMessage()),
+            sprintf('An unknown error occurred (status code = %s) : %s', $responseStatusCode, $previous->getMessage()),
             0,
             $previous
         );

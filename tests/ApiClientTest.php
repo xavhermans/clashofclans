@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Fivem\ClashOfClans\Tests;
 
 use Fivem\ClashOfClans\ApiClient;
-use Fivem\ClashOfClans\Exception\ApiError\ApiErrorException;
-use Fivem\ClashOfClans\Exception\ApiError\UnknownApiErrorException;
+use Fivem\ClashOfClans\Exception\ApiErrorException;
+use Fivem\ClashOfClans\Exception\UnknownApiErrorException;
 use Fivem\ClashOfClans\HttpClientFactory\HttpClientFactory;
 use Fivem\ClashOfClans\Model\Clan\Clan;
 use Fivem\ClashOfClans\Model\CurrentWar\CurrentWar;
@@ -23,6 +23,45 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
  */
 final class ApiClientTest extends TestCase
 {
+    private const ERROR_PAYLOADS = [
+        400 => [
+            'payload' => <<<_JSON
+{"reason":"badRequest","message":"At least one filtering parameter must exist"}
+_JSON,
+            'message' => 'At least one filtering parameter must exist',
+        ],
+        403 => [
+            'payload' => <<<_JSON
+{"reason":"accessDenied","message":"Invalid authorization"}
+_JSON,
+            'message' => 'Access denied, either because of missing/incorrect credentials or used API token does not grant access to the requested resource.',
+        ],
+        404 => [
+            'payload' => <<<_JSON
+{"reason":"notFound"}
+_JSON,
+            'message' => 'Resource was not found.',
+        ],
+        429 => [
+            'payload' => <<<_JSON
+{"reason":""}
+_JSON,
+            'message' => 'Request was throttled, because amount of requests was above the threshold defined for the used API token.',
+        ],
+        503 => [
+            'payload' => <<<_JSON
+{"reason":""}
+_JSON,
+            'message' => 'Service is temporarily unavailable because of maintenance.',
+        ],
+        500 => [
+            'payload' => <<<_JSON
+{"reason":""}
+_JSON,
+            'message' => 'Unknown error happened when handling the request.',
+        ],
+    ];
+
     /** @var MockObject|HttpClientInterface */
     private $httpClient;
 
@@ -175,6 +214,23 @@ _JSON;
 
         $firstItem = $response->items[0];
         self::assertEquals('coconut', $firstItem->name);
+    }
+
+    public function testFindClanByTagNotFoundReturnNull(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')
+            ->willReturn(404);
+        $response->method('getContent')
+            ->willReturn(self::ERROR_PAYLOADS[404]['payload']);
+
+        $this->httpClient
+            ->method('request')
+            ->willReturn($response);
+
+        $response = $this->buildClient()->findClanByTag('tag');
+
+        self::assertNull($response);
     }
 
     public function testFindClanByTag(): void
@@ -577,8 +633,9 @@ _JSON;
     public function testBadStatusCodes(
         int $statusCode,
         string $jsonResponseContent,
-        string $expectedExceptionClassName,
-        string $expectedMessage
+        string $expectedMessage,
+        string $methodName,
+        array $methodArgs
     ): void {
         $response = $this->createMock(ResponseInterface::class);
         $response->method('getStatusCode')
@@ -590,8 +647,9 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
+        $client = $this->buildClient();
         try {
-            $this->buildClient()->getCurrentWar('tag');
+            \call_user_func_array([$client, $methodName], $methodArgs);
         } catch (\Exception $e) {
             if (!$e instanceof UnknownApiErrorException
                 && !$e instanceof ApiErrorException
@@ -606,58 +664,135 @@ _JSON;
 
     public function provideBadStatusCodes(): ?\Generator
     {
-        yield '400' => [
+        /*
+         * findClanByTag
+         */
+
+        yield 'findClanByTag-400' => [
             400,
-            <<<_JSON
-{"reason":"badRequest","message":"At least one filtering parameter must exist"}
-_JSON,
-            ApiErrorException::class,
-            'At least one filtering parameter must exist',
+            self::ERROR_PAYLOADS[400]['payload'],
+            self::ERROR_PAYLOADS[400]['message'],
+            'findClanByTag',
+            ['tag'],
         ];
 
-        yield '403' => [
+        yield 'findClanByTag-403' => [
             403,
-            <<<_JSON
-{"reason":"accessDenied","message":"Invalid authorization"}
-_JSON,
-            ApiErrorException::class,
-            'Access denied, either because of missing/incorrect credentials or used API token does not grant access to the requested resource.',
+            self::ERROR_PAYLOADS[403]['payload'],
+            self::ERROR_PAYLOADS[403]['message'],
+            'findClanByTag',
+            ['tag'],
         ];
 
-        yield '404' => [
-            404,
-            <<<_JSON
-{"reason":"notFound"}
-_JSON,
-            ApiErrorException::class,
-            'Resource was not found.',
-        ];
-
-        yield '429' => [
+        yield 'findClanByTag-429' => [
             429,
-            <<<_JSON
-{"reason":""}
-_JSON,
-            ApiErrorException::class,
-            'Request was throttled, because amount of requests was above the threshold defined for the used API token.',
+            self::ERROR_PAYLOADS[429]['payload'],
+            self::ERROR_PAYLOADS[429]['message'],
+            'findClanByTag',
+            ['tag'],
         ];
 
-        yield '503' => [
-            503,
-            <<<_JSON
-{"reason":""}
-_JSON,
-            ApiErrorException::class,
-            'Service is temporarily unavailable because of maintenance.',
-        ];
-
-        yield '500' => [
+        yield 'findClanByTag-500' => [
             500,
-            <<<_JSON
-{"reason":""}
-_JSON,
-            ApiErrorException::class,
-            'Unknown error happened when handling the request.',
+            self::ERROR_PAYLOADS[500]['payload'],
+            self::ERROR_PAYLOADS[500]['message'],
+            'findClanByTag',
+            ['tag'],
+        ];
+
+        yield 'findClanByTag-503' => [
+            503,
+            self::ERROR_PAYLOADS[503]['payload'],
+            self::ERROR_PAYLOADS[503]['message'],
+            'findClanByTag',
+            ['tag'],
+        ];
+
+        /*
+         * findLocationByCountryCode
+         */
+
+        yield 'findLocationByCountryCode-400' => [
+            400,
+            self::ERROR_PAYLOADS[400]['payload'],
+            self::ERROR_PAYLOADS[400]['message'],
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+
+        yield 'findLocationByCountryCode-403' => [
+            403,
+            self::ERROR_PAYLOADS[403]['payload'],
+            self::ERROR_PAYLOADS[403]['message'],
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+
+        yield 'findLocationByCountryCode-429' => [
+            429,
+            self::ERROR_PAYLOADS[429]['payload'],
+            self::ERROR_PAYLOADS[429]['message'],
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+
+        yield 'findLocationByCountryCode-500' => [
+            500,
+            self::ERROR_PAYLOADS[500]['payload'],
+            self::ERROR_PAYLOADS[500]['message'],
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+
+        yield 'findLocationByCountryCode-503' => [
+            503,
+            self::ERROR_PAYLOADS[503]['payload'],
+            self::ERROR_PAYLOADS[503]['message'],
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+        /*
+         * findLocationByCountryCode
+         */
+
+        yield 'searchClans-400' => [
+            400,
+            self::ERROR_PAYLOADS[400]['payload'],
+            self::ERROR_PAYLOADS[400]['message'],
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
+        ];
+
+        yield 'searchClans-403' => [
+            403,
+            self::ERROR_PAYLOADS[403]['payload'],
+            self::ERROR_PAYLOADS[403]['message'],
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
+        ];
+
+        yield 'searchClans-429' => [
+            429,
+            self::ERROR_PAYLOADS[429]['payload'],
+            self::ERROR_PAYLOADS[429]['message'],
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
+        ];
+
+        yield 'searchClans-500' => [
+            500,
+            self::ERROR_PAYLOADS[500]['payload'],
+            self::ERROR_PAYLOADS[500]['message'],
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
+        ];
+
+        yield 'searchClans-503' => [
+            503,
+            self::ERROR_PAYLOADS[503]['payload'],
+            self::ERROR_PAYLOADS[503]['message'],
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
         ];
     }
 

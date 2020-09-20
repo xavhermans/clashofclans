@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Fivem\ClashOfClans;
 
+use Doctrine\Common\Annotations\AnnotationReader;
 use Fivem\ClashOfClans\Exception\ApiClientExceptionInterface;
-use Fivem\ClashOfClans\Exception\ApiError\ApiErrorException;
-use Fivem\ClashOfClans\Exception\ApiError\UnknownApiErrorException;
+use Fivem\ClashOfClans\Exception\ApiErrorException;
 use Fivem\ClashOfClans\Exception\DeserializationException;
+use Fivem\ClashOfClans\Exception\UnknownApiErrorException;
 use Fivem\ClashOfClans\HttpClientFactory\HttpClientFactory;
 use Fivem\ClashOfClans\Model\ApiError;
 use Fivem\ClashOfClans\Model\Clan\Clan;
@@ -19,7 +20,6 @@ use Fivem\ClashOfClans\Model\Paginator\SearchClansPaginator;
 use Fivem\ClashOfClans\Query\GetWarLogQuery;
 use Fivem\ClashOfClans\Query\ListLocationsQuery;
 use Fivem\ClashOfClans\Query\SearchClansQuery;
-use Doctrine\Common\Annotations\AnnotationReader;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
@@ -120,12 +120,20 @@ class ApiClient
 
     public function findClanByTag(string $clanTag): ?Clan
     {
-        /** @var \Fivem\ClashOfClans\Model\Clan\Clan $response */
-        $response = $this->doGetRequest(
-            Clan::class,
-            sprintf('clans/%s', urlencode($clanTag)),
-            []
-        );
+        try {
+            /** @var Clan $response */
+            $response = $this->doGetRequest(
+                Clan::class,
+                sprintf('clans/%s', urlencode($clanTag)),
+                []
+            );
+        } catch (ApiErrorException $e) {
+            if ($e->isNotFound()) {
+                return null;
+            }
+
+            throw $e;
+        }
 
         return $response;
     }
@@ -159,7 +167,10 @@ class ApiClient
         return $this->lastResponse;
     }
 
-    public function createExceptionFromResponse(ResponseInterface $response): ApiClientExceptionInterface
+    /**
+     * @throws UnknownApiErrorException
+     */
+    public function createExceptionFromResponse(ResponseInterface $response): ApiErrorException
     {
         $responseStatusCode = $response->getStatusCode();
         $responseContent = $response->getContent(false);
@@ -177,12 +188,13 @@ class ApiClient
 
             return new ApiErrorException($responseStatusCode, $responseContent, $apiError);
         } catch (\Exception $e) {
-            return new UnknownApiErrorException($responseStatusCode, $responseContent, $e);
+            throw new UnknownApiErrorException($responseStatusCode, $responseContent, $e);
         }
     }
 
     /**
-     * @throws ApiClientExceptionInterface
+     * @throws ApiErrorException
+     * @throws \Fivem\ClashOfClans\Exception\UnknownApiErrorException
      * @throws DeserializationException
      */
     private function doGetRequest(string $responseClassName, string $url, array $data): object

@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Fivem\ClashOfClans\Exception\ApiError;
+namespace Fivem\ClashOfClans\Exception;
 
-use Fivem\ClashOfClans\Exception\ApiClientExceptionInterface;
 use Fivem\ClashOfClans\Model\ApiError;
 
 class ApiErrorException extends \Exception implements ApiClientExceptionInterface
@@ -35,5 +34,10 @@ class ApiErrorException extends \Exception implements ApiClientExceptionInterfac
     public function getApiError(): ApiError
     {
         return $this->apiError;
+    }
+
+    public function isNotFound(): bool
+    {
+        return 404 === $this->responseStatusCode;
     }
 }

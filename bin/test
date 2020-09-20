@@ -1,0 +1,44 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+
+$client = new \Fivem\ClashOfClans\ApiClient(
+    new \Fivem\ClashOfClans\HttpClientFactory\SymfonyHttpClientFactory(),
+    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImM5MTQ2NzcxLTkyYmQtNDY5MC04MWIzLThkNGVlNWFhMjBhOSIsImlhdCI6MTYwMDEwMjc2Nywic3ViIjoiZGV2ZWxvcGVyLzEyYzkzYmMwLWU3YmItZmE3NS0wZTEzLWExZDZlYjQwYWRhOSIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjkxLjE2Ny4xODEuNDAiXSwidHlwZSI6ImNsaWVudCJ9XX0.QnRjsfOtXVIvcKhraYFhibiR3ZMvg1DZ_ubL-zlw8NqGZZNJCeklG3URzwS9uzRXI1poRws6lS9EKxEg7JUYBw'
+);
+
+//$response = $client->searchClans(\Fivem\ClashOfClans\Query\SearchClansQuery::fromArray([
+////    'limit' => 10,
+////    'name' => 'coconut',
+////    'locationId' => $client->findLocationByCountryCode('FR')->id
+//]));
+//exit(print_r([count($response->items), $response->items[0]], true));
+
+//$response = $client->listLocations(\Fivem\ClashOfClans\Query\ListLocationsQuery::fromArray([
+//    'limit' => 5
+//]));
+
+//$location = $client->findLocationByCountryCode('FR');
+//exit(print_r([$location], true));
+
+//$clan = $client->findClanByTag('#2PPC8L2QP');
+$clan = $client->findClanByTag('#dgfhcgjkjlk');
+exit(print_r([$clan->name], true));
+
+//$warLog = $client->getWarLog(\Fivem\ClashOfClans\Query\GetWarLogQuery::fromArray([
+//        'clanTag' => '#2PPC8L2QP'
+//]));
+//exit(print_r([$warLog], true));
+
+//$currentWar = $client->getCurrentWar('#2PPC8L2QP');
+//exit(print_r([$currentWar], true));
+
+//foreach ($response->items as $item) {
+//    echo $item->name . PHP_EOL;
+//}
+
+//exit(print_r([$response->items[0]], true));
+
+exit('PLOP');
