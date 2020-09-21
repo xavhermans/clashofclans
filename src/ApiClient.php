@@ -9,7 +9,6 @@ use Fivem\ClashOfClans\Exception\ApiClientExceptionInterface;
 use Fivem\ClashOfClans\Exception\ApiErrorException;
 use Fivem\ClashOfClans\Exception\DeserializationException;
 use Fivem\ClashOfClans\Exception\UnknownApiErrorException;
-use Fivem\ClashOfClans\HttpClientFactory\HttpClientFactory;
 use Fivem\ClashOfClans\Model\ApiError;
 use Fivem\ClashOfClans\Model\Clan\Clan;
 use Fivem\ClashOfClans\Model\CurrentWar\CurrentWar;
@@ -20,6 +19,7 @@ use Fivem\ClashOfClans\Model\Paginator\SearchClansPaginator;
 use Fivem\ClashOfClans\Query\GetWarLogQuery;
 use Fivem\ClashOfClans\Query\ListLocationsQuery;
 use Fivem\ClashOfClans\Query\SearchClansQuery;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
@@ -42,19 +42,32 @@ class ApiClient
 {
     private const BASE_URL = 'https://api.clashofclans.com/v1/';
 
-    private SerializerInterface $serializer;
     private HttpClientInterface $httpClient;
+    private string $apiKey;
+    private SerializerInterface $serializer;
     private ?ResponseInterface $lastResponse;
 
-    public function __construct(
-        HttpClientFactory $httpClientFactory,
-        string $apiKey
-    ) {
-        $this->httpClient = $httpClientFactory->build(self::BASE_URL, $apiKey);
+    public static function buildHttpClient(): HttpClientInterface
+    {
+        return HttpClient::createForBaseUri(rtrim(self::BASE_URL));
+    }
 
+    public function __construct(
+        HttpClientInterface $httpClient,
+        string $apiKey
+    )
+    {
+        $this->httpClient = $httpClient;
+        $this->apiKey = $apiKey;
+        $this->serializer = self::buildSerializer();
+        $this->lastResponse = null;
+    }
+
+    private static function buildSerializer(): SerializerInterface
+    {
         $extractor = new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]);
         $classMetadataFactory = new ClassMetadataFactory(new AnnotationLoader(new AnnotationReader()));
-        $this->serializer = new Serializer([
+        return new Serializer([
             new ObjectNormalizer(
                 $classMetadataFactory, null, new PropertyAccessor(), $extractor
             ),
@@ -63,8 +76,6 @@ class ApiClient
         ], [
             new JsonEncoder(),
         ]);
-
-        $this->lastResponse = null;
     }
 
     /**
@@ -200,6 +211,11 @@ class ApiClient
     private function doGetRequest(string $responseClassName, string $url, array $data): object
     {
         $this->lastResponse = $this->httpClient->request('GET', $url, [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'authorization' => sprintf('Bearer %s', $this->apiKey),
+            ],
             'query' => $data,
         ]);
 

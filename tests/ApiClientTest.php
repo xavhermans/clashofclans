@@ -7,7 +7,6 @@ namespace Fivem\ClashOfClans\Tests;
 use Fivem\ClashOfClans\ApiClient;
 use Fivem\ClashOfClans\Exception\ApiErrorException;
 use Fivem\ClashOfClans\Exception\UnknownApiErrorException;
-use Fivem\ClashOfClans\HttpClientFactory\HttpClientFactory;
 use Fivem\ClashOfClans\Model\Clan\Clan;
 use Fivem\ClashOfClans\Model\CurrentWar\CurrentWar;
 use Fivem\ClashOfClans\Model\Paginator\GetWarLogPaginator;
@@ -65,19 +64,18 @@ _JSON,
     /** @var MockObject|HttpClientInterface */
     private $httpClient;
 
-    /** @var HttpClientFactory|MockObject */
-    private $httpClientFactory;
+    /** @var ApiClient  */
+    private $apiClient;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->httpClient = $this->createMock(HttpClientInterface::class);
-
-        $this->httpClientFactory = $this->createMock(HttpClientFactory::class);
-        $this->httpClientFactory
-            ->method('build')
-            ->willReturn($this->httpClient);
+        $this->apiClient = new ApiClient(
+            $this->httpClient,
+            'apikey'
+        );
     }
 
     public function testSearchClans(): void
@@ -207,7 +205,7 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $response = $this->buildClient()->searchClans(SearchClansQuery::fromArray([]));
+        $response = $this->apiClient->searchClans(SearchClansQuery::fromArray([]));
 
         self::assertContainsOnlyInstancesOf(Clan::class, $response->items);
         self::assertCount(2, $response->items);
@@ -228,7 +226,7 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $response = $this->buildClient()->findClanByTag('tag');
+        $response = $this->apiClient->findClanByTag('tag');
 
         self::assertNull($response);
     }
@@ -363,7 +361,7 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $response = $this->buildClient()->findClanByTag('tag');
+        $response = $this->apiClient->findClanByTag('tag');
 
         self::assertInstanceOf(Clan::class, $response);
     }
@@ -449,7 +447,7 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $response = $this->buildClient()->getWarLog(GetWarLogQuery::fromArray([
+        $response = $this->apiClient->getWarLog(GetWarLogQuery::fromArray([
             'clanTag' => 'sometag',
         ]));
 
@@ -623,7 +621,7 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $response = $this->buildClient()->getCurrentWar('tag');
+        $response = $this->apiClient->getCurrentWar('tag');
         self::assertInstanceOf(CurrentWar::class, $response);
     }
 
@@ -647,9 +645,8 @@ _JSON;
             ->method('request')
             ->willReturn($response);
 
-        $client = $this->buildClient();
         try {
-            \call_user_func_array([$client, $methodName], $methodArgs);
+            \call_user_func_array([$this->apiClient, $methodName], $methodArgs);
         } catch (\Exception $e) {
             if (!$e instanceof UnknownApiErrorException
                 && !$e instanceof ApiErrorException
@@ -796,11 +793,4 @@ _JSON;
         ];
     }
 
-    private function buildClient(): ApiClient
-    {
-        return new ApiClient(
-            $this->httpClientFactory,
-            'apikey'
-        );
-    }
 }
