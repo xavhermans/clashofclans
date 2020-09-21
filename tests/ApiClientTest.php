@@ -626,15 +626,105 @@ _JSON;
     }
 
     /**
-     * @dataProvider provideBadStatusCodes
+     * @dataProvider provideMethods
      */
-    public function testBadStatusCodes(
-        int $statusCode,
-        string $jsonResponseContent,
-        string $expectedMessage,
-        string $methodName,
-        array $methodArgs
-    ): void {
+    public function testError400(string $methodName, array $methodArgs): void
+    {
+        $statusCode = 400;
+
+        $this->doTestError(
+            $statusCode,
+            self::ERROR_PAYLOADS[$statusCode]['message'],
+            self::ERROR_PAYLOADS[$statusCode]['payload'],
+            $methodName,
+            $methodArgs
+        );
+    }
+
+    /**
+     * @dataProvider provideMethods
+     */
+    public function testError403(string $methodName, array $methodArgs): void
+    {
+        $statusCode = 403;
+
+        $this->doTestError(
+            $statusCode,
+            self::ERROR_PAYLOADS[$statusCode]['message'],
+            self::ERROR_PAYLOADS[$statusCode]['payload'],
+            $methodName,
+            $methodArgs
+        );
+    }
+
+    /**
+     * @dataProvider provideMethods
+     */
+    public function testError429(string $methodName, array $methodArgs): void
+    {
+        $statusCode = 429;
+
+        $this->doTestError(
+            $statusCode,
+            self::ERROR_PAYLOADS[$statusCode]['message'],
+            self::ERROR_PAYLOADS[$statusCode]['payload'],
+            $methodName,
+            $methodArgs
+        );
+    }
+
+    /**
+     * @dataProvider provideMethods
+     */
+    public function testError500(string $methodName, array $methodArgs): void
+    {
+        $statusCode = 500;
+
+        $this->doTestError(
+            $statusCode,
+            self::ERROR_PAYLOADS[$statusCode]['message'],
+            self::ERROR_PAYLOADS[$statusCode]['payload'],
+            $methodName,
+            $methodArgs
+        );
+    }
+
+    /**
+     * @dataProvider provideMethods
+     */
+    public function testError503(string $methodName, array $methodArgs): void
+    {
+        $statusCode = 503;
+
+        $this->doTestError(
+            $statusCode,
+            self::ERROR_PAYLOADS[$statusCode]['message'],
+            self::ERROR_PAYLOADS[$statusCode]['payload'],
+            $methodName,
+            $methodArgs
+        );
+    }
+
+    public function provideMethods(): ?\Generator
+    {
+        yield 'findClanByTag' => [
+            'findClanByTag',
+            ['tag'],
+        ];
+
+        yield 'findLocationByCountryCode' => [
+            'findLocationByCountryCode',
+            ['FR'],
+        ];
+
+        yield 'searchClans' => [
+            'searchClans',
+            [SearchClansQuery::fromArray([])],
+        ];
+    }
+
+    private function doTestError(int $statusCode, string $expectedMessage, string $jsonResponseContent, string $methodName, array $methodArgs): void
+    {
         $response = $this->createMock(ResponseInterface::class);
         $response->method('getStatusCode')
             ->willReturn($statusCode);
@@ -657,139 +747,5 @@ _JSON;
             self::assertEquals($expectedMessage, $e->getMessage());
             self::assertEquals($statusCode, $e->getResponseStatusCode());
         }
-    }
-
-    public function provideBadStatusCodes(): ?\Generator
-    {
-        /*
-         * findClanByTag
-         */
-
-        yield 'findClanByTag-400' => [
-            400,
-            self::ERROR_PAYLOADS[400]['payload'],
-            self::ERROR_PAYLOADS[400]['message'],
-            'findClanByTag',
-            ['tag'],
-        ];
-
-        yield 'findClanByTag-403' => [
-            403,
-            self::ERROR_PAYLOADS[403]['payload'],
-            self::ERROR_PAYLOADS[403]['message'],
-            'findClanByTag',
-            ['tag'],
-        ];
-
-        yield 'findClanByTag-429' => [
-            429,
-            self::ERROR_PAYLOADS[429]['payload'],
-            self::ERROR_PAYLOADS[429]['message'],
-            'findClanByTag',
-            ['tag'],
-        ];
-
-        yield 'findClanByTag-500' => [
-            500,
-            self::ERROR_PAYLOADS[500]['payload'],
-            self::ERROR_PAYLOADS[500]['message'],
-            'findClanByTag',
-            ['tag'],
-        ];
-
-        yield 'findClanByTag-503' => [
-            503,
-            self::ERROR_PAYLOADS[503]['payload'],
-            self::ERROR_PAYLOADS[503]['message'],
-            'findClanByTag',
-            ['tag'],
-        ];
-
-        /*
-         * findLocationByCountryCode
-         */
-
-        yield 'findLocationByCountryCode-400' => [
-            400,
-            self::ERROR_PAYLOADS[400]['payload'],
-            self::ERROR_PAYLOADS[400]['message'],
-            'findLocationByCountryCode',
-            ['FR'],
-        ];
-
-        yield 'findLocationByCountryCode-403' => [
-            403,
-            self::ERROR_PAYLOADS[403]['payload'],
-            self::ERROR_PAYLOADS[403]['message'],
-            'findLocationByCountryCode',
-            ['FR'],
-        ];
-
-        yield 'findLocationByCountryCode-429' => [
-            429,
-            self::ERROR_PAYLOADS[429]['payload'],
-            self::ERROR_PAYLOADS[429]['message'],
-            'findLocationByCountryCode',
-            ['FR'],
-        ];
-
-        yield 'findLocationByCountryCode-500' => [
-            500,
-            self::ERROR_PAYLOADS[500]['payload'],
-            self::ERROR_PAYLOADS[500]['message'],
-            'findLocationByCountryCode',
-            ['FR'],
-        ];
-
-        yield 'findLocationByCountryCode-503' => [
-            503,
-            self::ERROR_PAYLOADS[503]['payload'],
-            self::ERROR_PAYLOADS[503]['message'],
-            'findLocationByCountryCode',
-            ['FR'],
-        ];
-        /*
-         * findLocationByCountryCode
-         */
-
-        yield 'searchClans-400' => [
-            400,
-            self::ERROR_PAYLOADS[400]['payload'],
-            self::ERROR_PAYLOADS[400]['message'],
-            'searchClans',
-            [SearchClansQuery::fromArray([])],
-        ];
-
-        yield 'searchClans-403' => [
-            403,
-            self::ERROR_PAYLOADS[403]['payload'],
-            self::ERROR_PAYLOADS[403]['message'],
-            'searchClans',
-            [SearchClansQuery::fromArray([])],
-        ];
-
-        yield 'searchClans-429' => [
-            429,
-            self::ERROR_PAYLOADS[429]['payload'],
-            self::ERROR_PAYLOADS[429]['message'],
-            'searchClans',
-            [SearchClansQuery::fromArray([])],
-        ];
-
-        yield 'searchClans-500' => [
-            500,
-            self::ERROR_PAYLOADS[500]['payload'],
-            self::ERROR_PAYLOADS[500]['message'],
-            'searchClans',
-            [SearchClansQuery::fromArray([])],
-        ];
-
-        yield 'searchClans-503' => [
-            503,
-            self::ERROR_PAYLOADS[503]['payload'],
-            self::ERROR_PAYLOADS[503]['message'],
-            'searchClans',
-            [SearchClansQuery::fromArray([])],
-        ];
     }
 }
