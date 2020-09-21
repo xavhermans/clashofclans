@@ -9,8 +9,8 @@ use Fivem\ClashOfClans\Model\Model;
 
 class WarLogClan implements Model
 {
-    public string $name;
-    public string $tag;
+    public ?string $name = null;
+    public ?string $tag = null;
     public BadgeUrls $badgeUrls;
     public int $clanLevel;
     public int $attacks;
