@@ -20,6 +20,7 @@ use Fivem\ClashOfClans\Query\GetWarLogQuery;
 use Fivem\ClashOfClans\Query\ListLocationsQuery;
 use Fivem\ClashOfClans\Query\SearchClansQuery;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\ScopingHttpClient;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
@@ -43,39 +44,26 @@ class ApiClient
     private const BASE_URL = 'https://api.clashofclans.com/v1/';
 
     private HttpClientInterface $httpClient;
-    private string $apiKey;
     private SerializerInterface $serializer;
     private ?ResponseInterface $lastResponse;
 
-    public static function buildHttpClient(): HttpClientInterface
-    {
-        return HttpClient::createForBaseUri(rtrim(self::BASE_URL));
-    }
-
     public function __construct(
-        HttpClientInterface $httpClient,
-        string $apiKey
-    )
-    {
-        $this->httpClient = $httpClient;
-        $this->apiKey = $apiKey;
+        string $apiKey,
+        ?HttpClientInterface $httpClient = null
+    ) {
+        $this->httpClient = ScopingHttpClient::forBaseUri(
+            $httpClient ?: HttpClient::create(),
+            rtrim(self::BASE_URL),
+            [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'auth_bearer' => $apiKey,
+            ]
+        );
         $this->serializer = self::buildSerializer();
         $this->lastResponse = null;
-    }
-
-    private static function buildSerializer(): SerializerInterface
-    {
-        $extractor = new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]);
-        $classMetadataFactory = new ClassMetadataFactory(new AnnotationLoader(new AnnotationReader()));
-        return new Serializer([
-            new ObjectNormalizer(
-                $classMetadataFactory, null, new PropertyAccessor(), $extractor
-            ),
-            new PropertyNormalizer(),
-            new ArrayDenormalizer(),
-        ], [
-            new JsonEncoder(),
-        ]);
     }
 
     /**
@@ -203,6 +191,22 @@ class ApiClient
         }
     }
 
+    private static function buildSerializer(): SerializerInterface
+    {
+        $extractor = new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]);
+        $classMetadataFactory = new ClassMetadataFactory(new AnnotationLoader(new AnnotationReader()));
+
+        return new Serializer([
+            new ObjectNormalizer(
+                $classMetadataFactory, null, new PropertyAccessor(), $extractor
+            ),
+            new PropertyNormalizer(),
+            new ArrayDenormalizer(),
+        ], [
+            new JsonEncoder(),
+        ]);
+    }
+
     /**
      * @throws ApiErrorException
      * @throws \Fivem\ClashOfClans\Exception\UnknownApiErrorException
@@ -211,11 +215,6 @@ class ApiClient
     private function doGetRequest(string $responseClassName, string $url, array $data): object
     {
         $this->lastResponse = $this->httpClient->request('GET', $url, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-                'authorization' => sprintf('Bearer %s', $this->apiKey),
-            ],
             'query' => $data,
         ]);
 

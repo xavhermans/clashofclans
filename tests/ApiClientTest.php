@@ -64,7 +64,7 @@ _JSON,
     /** @var MockObject|HttpClientInterface */
     private $httpClient;
 
-    /** @var ApiClient  */
+    /** @var ApiClient */
     private $apiClient;
 
     protected function setUp(): void
@@ -73,8 +73,8 @@ _JSON,
 
         $this->httpClient = $this->createMock(HttpClientInterface::class);
         $this->apiClient = new ApiClient(
-            $this->httpClient,
-            'apikey'
+            'apikey',
+            $this->httpClient
         );
     }
 
@@ -792,5 +792,4 @@ _JSON;
             [SearchClansQuery::fromArray([])],
         ];
     }
-
 }
